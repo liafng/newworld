@@ -1,0 +1,1258 @@
+import cv2
+import h5py
+import os
+import argparse
+import json
+import time
+from keras.utils import np_utils, conv_utils
+from keras.models import Sequential  # 卷积核越多提取的特征越细化
+from keras.layers import Dense, Flatten, Dropout
+from keras.layers.convolutional import Conv2D, MaxPooling2D
+import numpy as np
+import cv2
+import numpy as np
+import h5py
+import os
+import keras
+from PIL import Image
+from keras.utils import np_utils, conv_utils
+from keras.models import Model
+from keras.layers import Flatten, Dense, Input
+from keras.optimizers import Adagrad
+from keras.optimizers import  Adam
+from keras.optimizers import  sgd
+from keras.optimizers import  RMSprop
+from keras.applications.resnet50 import ResNet50
+from keras.models import load_model
+
+from keras import backend as K
+from keras import regularizers
+import tensorflow as tf
+import keras.backend.tensorflow_backend as KTF
+import time
+#模型训练加验证epoch 3，验证集为100%
+def eachFile(filepath):                 #将目录内的文件名放入列表中
+    pathDir =os.listdir(filepath)
+    out = []
+    for allDir in pathDir:
+        #  child = allDir.decode('gbk')    # .decode('gbk')是解决中文显示乱码问题
+        out.append( allDir[0:-4])
+    return out
+
+def get_data(data_name, train_left=0.0, train_right=0.7, train_all=0.7, resize=True, data_format=None, t=''):  # 从文件夹中获取图像数据
+    file_name = os.path.join(pic_dir_out+ data_name+'_' + str(train_left) + '_' + str(train_right) + t + '_' + str(Width) + "X" + str(Height) + ".h5")
+    print(file_name)
+    if os.path.exists(file_name):  # 判断之前是否有存到文件中
+        print("from file load image!")
+        f = h5py.File(file_name, 'r')
+        if t == 'train':
+            X_apple = f['X_apple'][:]
+            y_apple = f['y_apple'][:]
+            X_yingtao = f['X_yingtao'][:]
+            y_yingtao = f['y_yingtao'][:]
+            X_yumi = f['X_yumi'][:]
+            y_yumi = f['y_yumi'][:]
+            X_putao = f['X_putao'][:]
+            y_putao = f['y_putao'][:]
+            X_ganju= f['X_ganju'][:]
+            y_ganju = f['y_ganju'][:]
+            X_malingshu = f['X_malingshu'][:]
+            y_malingshu = f['y_malingshu'][:]
+            X_caomei = f['X_caomei'][:]
+            y_caomei = f['y_caomei'][:]
+            X_fanqie = f['X_fanqie'][:]
+            y_fanqie = f['y_fanqie'][:]
+            X_lajiao = f['X_lajiao'][:]
+            y_lajiao = f['y_lajiao'][:]
+            X_tao = f['X_tao'][:]
+            y_tao = f['y_tao'][:]
+
+            f.close()
+            return (X_apple, y_apple,X_yingtao,y_yingtao,X_yumi,y_yumi ,X_putao ,y_putao, X_ganju,y_ganju,X_tao,y_tao,
+                X_lajiao,y_lajiao,X_malingshu,y_malingshu,X_caomei,y_caomei,X_fanqie,y_fanqie)
+        elif t == 'test':
+            X_apple = f['X_apple'][:]
+            y_apple = f['y_apple'][:]
+            X_yingtao = f['X_yingtao'][:]
+            y_yingtao = f['y_yingtao'][:]
+            X_yumi = f['X_yumi'][:]
+            y_yumi = f['y_yumi'][:]
+            X_putao = f['X_putao'][:]
+            y_putao = f['y_putao'][:]
+            X_ganju= f['X_ganju'][:]
+            y_ganju = f['y_ganju'][:]
+            X_malingshu = f['X_malingshu'][:]
+            y_malingshu = f['y_malingshu'][:]
+            X_caomei = f['X_caomei'][:]
+            y_caomei = f['y_caomei'][:]
+            X_fanqie = f['X_fanqie'][:]
+            y_fanqie = f['y_fanqie'][:]
+            X_lajiao = f['X_lajiao'][:]
+            y_lajiao = f['y_lajiao'][:]
+            X_tao = f['X_tao'][:]
+            y_tao = f['y_tao'][:]
+
+            f.close()
+            return (X_apple, y_apple,X_yingtao,y_yingtao,X_yumi,y_yumi ,X_putao ,y_putao, X_ganju,y_ganju,X_tao,y_tao,
+                X_lajiao,y_lajiao,X_malingshu,y_malingshu,X_caomei,y_caomei,X_fanqie,y_fanqie)
+        else:
+            return
+    if t == 'train':
+        reference_file = "./ai_challenger_pdr2018_train_annotations_20181021.json"
+        user_result_list = json.load(open(reference_file, encoding='utf-8'))
+        f = open(reference_file, encoding='utf-8')
+        ref_list = json.load(f)
+        f.close()
+        print("the total image is :")
+        print(len(ref_list))
+        user_result_dict = {}
+        for each_item in user_result_list:
+            image_id = each_item['image_id']
+            if image_id[-4:].lower() == '.jpg':
+                image_id = image_id[0:-4]
+            label_id = each_item['disease_class']
+            user_result_dict[image_id] = label_id
+        data_format = conv_utils.normalize_data_format(data_format)
+        pic_dir_set = eachFile(pic_dir_data)
+        X_apple = []
+        y_apple = []
+        X_yingtao=[]
+        y_yingtao=[]
+        X_yumi = []
+        y_yumi = []
+        X_putao = []
+        y_putao = []
+        X_ganju = []
+        y_ganju = []
+        X_tao = []
+        y_tao = []
+        X_lajiao = []
+        y_lajiao= []
+        X_malingshu = []
+        y_malingshu= []
+        X_caomei = []
+        y_caomei = []
+        X_fanqie = []
+        y_fanqie = []
+
+        count = 0
+        for pic_dir in pic_dir_set:
+            count = count + 1
+            print(count)
+            image_class=user_result_dict[pic_dir]
+            
+            if 0 <= image_class <= 5:
+                label=image_class
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_apple.append(img)
+                y_apple.append(label)
+            if 6 <= image_class <= 8:
+                label=image_class-6
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_yingtao.append(img)
+                y_yingtao.append(label)
+
+            if 9 <= image_class <= 16:
+                 label=image_class-9
+                 img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                 img = cv2.resize(img, (Width, Height))
+                 img_1 = img.reshape(-1, Width, Height, 3)
+                 X_yumi.append(img_1)
+                 y_yumi.append(label)
+                if image_class==9:
+                    Img_9 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_9 = Img_9.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_9)
+                    y_yumi.append(label)
+                if image_class==13:
+                    Img_13 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_13 = Img_13.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_13)
+                    y_yumi.append(label)
+                if image_class==10:
+                    Img_100 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_100 = Img_100.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_100)
+                    y_yumi.append(label)
+                    Img_101 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_101 = Img_101.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_101)
+                    y_yumi.append(label)
+                    Img_102 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_102 = Img_102.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_102)
+                    y_yumi.append(label)
+                if image_class==11:
+                    Img_110 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_110 = Img_110.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_110)
+                    y_yumi.append(label)
+                    Img_111 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_111 = Img_111.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_111)
+                    y_yumi.append(label)
+                    Img_112 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_112 = Img_112.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_112)
+                    y_yumi.append(label)
+                if image_class==14:
+                    Img_140 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_140 = Img_140.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_140)
+                    y_yumi.append(label)
+                    Img_141 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_141 = Img_141.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_141)
+                    y_yumi.append(label)
+                    Img_142 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_142 = Img_142.reshape(-1, Width, Height, 3)
+                    X_yumi.append(Img_142)
+                    y_yumi.append(label)
+
+
+
+            if 17 <= image_class <= 23:
+                label=image_class-17
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img_1 = img.reshape(-1, Width, Height, 3)
+                X_putao.append(img_1)
+                y_putao.append(label)
+                if image_class == 22:
+                    Img_22 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_221 = Img_22.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_221)
+                    y_ganju.append(label)
+                    Img_222 = cv2.flip(Img_22, 0, dst=None)  # 水平镜像
+                    Img_222 = Img_222.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_222)
+                    y_ganju.append(label)
+                    Img_223 = cv2.flip(Img_22, -1, dst=None)  # 水平镜像
+                    Img_223 = Img_223.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_223)
+                    y_ganju.append(label)
+                if image_class == 22:
+                    Img_224 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_226 = Img_224.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_226)
+                    y_ganju.append(label)
+                    Img_227 = cv2.flip(Img_224, -1, dst=None)
+                    Img_227 = Img_227.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_227)
+                    y_ganju.append(label)
+                    Img_225 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_225 = Img_225.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_225)
+                    y_ganju.append(label)
+                if image_class == 17:
+                    Img_17 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_17 = Img_17.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_17)
+                    y_ganju.append(label)
+
+            if 24 <= image_class <= 26:
+                label=image_class-24
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img_1 = img.reshape(-1, Width, Height, 3)
+                X_ganju.append(img_1)
+                y_ganju.append(label)
+                if image_class == 24:
+                    Img_1 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_2 = Img_1.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_2)
+                    y_ganju.append(label)
+                    Img_3 = cv2.flip(Img_1, 0, dst=None)  # 水平镜像
+                    Img_3 = Img_3.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_3)
+                    y_ganju.append(label)
+                if image_class == 24:
+                    Img_4 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_4 = Img_4.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_4)
+                    y_ganju.append(label)
+                if image_class == 24:
+                    Img_5 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_5 = Img_5.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_5)
+                    y_ganju.append(label)
+
+
+
+
+            if 27 <= image_class <= 29:
+                label=image_class-27
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_tao.append(img)
+                y_tao.append(label)
+            if 30 <= image_class <= 32:
+                label=image_class-30
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_lajiao.append(img)
+                y_lajiao.append(label)
+            if 33 <= image_class <= 37:
+                label=image_class-33
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_malingshu.append(img)
+                y_malingshu.append(label)
+            if 38 <= image_class <= 40:
+                label=image_class-38
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_caomei.append(img)
+                y_caomei.append(label)
+            if 41 <= image_class <= 60:
+                label=image_class-41
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_data, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img_1 = img.reshape(-1, Width, Height, 3)
+                X_fanqie.append(img_1)
+                y_fanqie.append(label)
+                if image_class == 41:
+                    Img_41 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_41 = Img_41.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_41)
+                    y_ganju.append(label)
+                if image_class == 49:
+                    Img_49 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_49 = Img_49.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_49)
+                    y_ganju.append(label)
+                if image_class == 58:
+                    Img_58 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_58 = Img_58.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_58)
+                    y_ganju.append(label)
+                if image_class == 43:
+                    Img_43 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_43 = Img_43.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_43)
+                    y_ganju.append(label)
+                if image_class == 55:
+                    Img_55 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_55 = Img_55.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_55)
+                    y_ganju.append(label)
+
+
+
+
+                if image_class == 44:
+                    Img_44 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_44 = Img_44.reshape(-1, Width, Height, 3)
+                    for i in range(500):
+                        X_ganju.append(Img_44)
+                        y_ganju.append(label)
+                    Img_440 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_440 = Img_440.reshape(-1, Width, Height, 3)
+                    for i in range(500):
+                        X_ganju.append(Img_440)
+                        y_ganju.append(label)
+                    Img_4410 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_441 = Img_4410.reshape(-1, Width, Height, 3)
+                    for i in range(500):
+                        X_ganju.append(Img_441)
+                        y_ganju.append(label)
+                    Img_444 = cv2.flip(Img_4410, -1, dst=None)  # 水平镜像
+                    Img_444 = Img_444.reshape(-1, Width, Height, 3)
+                    for i in range(500):
+                        X_ganju.append(Img_444)
+                        y_ganju.append(label)
+                if image_class == 45:
+                    Img_45 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_45 = Img_45.reshape(-1, Width, Height, 3)
+                    for i in range(500):
+                        X_ganju.append(Img_45)
+                        y_ganju.append(label)
+                    Img_450 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_450 = Img_450.reshape(-1, Width, Height, 3)
+                    for i in range(500):
+                        X_ganju.append(Img_450)
+                        y_ganju.append(label)
+                    Img_4510 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_451 = Img_4510.reshape(-1, Width, Height, 3)
+                    for i in range(500):
+                        X_ganju.append(Img_451)
+                        y_ganju.append(label)
+                    Img_454 = cv2.flip(Img_4510, -1, dst=None)  # 水平镜像
+                    Img_454 = Img_454.reshape(-1, Width, Height, 3)
+                    for i in range(500):
+                        X_ganju.append(Img_454)
+                        y_ganju.append(label)
+                if image_class==56:
+                    Img_560 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_560 = Img_560.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_560)
+                    y_ganju.append(label)
+                    Img_561 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_561 = Img_561.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_561)
+                    y_ganju.append(label)
+                    Img_562 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_562 = Img_562.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_562)
+                    y_ganju.append(label)
+                if image_class==47:
+                    Img_470 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_470 = Img_470.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_470)
+                    y_ganju.append(label)
+                    Img_471 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_471 = Img_471.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_471)
+                    y_ganju.append(label)
+                    Img_472 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_472 = Img_472.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_472)
+                    y_ganju.append(label)
+                if image_class==54:
+                    Img_540 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_540 = Img_540.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_540)
+                    y_ganju.append(label)
+                    Img_541 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_541 = Img_541.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_541)
+                    y_ganju.append(label)
+                    Img_542 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_542 = Img_542.reshape(-1, Width, Height, 3)
+                    X_ganju.append(Img_542)
+                    y_ganju.append(label)
+                if image_class == 42:
+                    Img_42 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_42 = Img_42.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_42)
+                        y_ganju.append(label)
+                    Img_420 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_420 = Img_420.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_420)
+                        y_ganju.append(label)
+                    Img_421 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_421 = Img_421.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_421)
+                        y_ganju.append(label)
+                if image_class == 46:
+                    Img_46 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_46 = Img_46.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_46)
+                        y_ganju.append(label)
+                    Img_460 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_460 = Img_460.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_460)
+                        y_ganju.append(label)
+                    Img_461 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_461 = Img_461.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_461)
+                        y_ganju.append(label)
+                if image_class == 48:
+                    Img_48 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_48 = Img_48.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_48)
+                        y_ganju.append(label)
+                    Img_480 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_480 = Img_480.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_480)
+                        y_ganju.append(label)
+                    Img_481 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_481 = Img_481.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_481)
+                        y_ganju.append(label)
+                if image_class == 50:
+                    Img_50 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_50 = Img_50.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_50)
+                        y_ganju.append(label)
+                    Img_500 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_500 = Img_500.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_500)
+                        y_ganju.append(label)
+                    Img_501 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_501 = Img_501.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_501)
+                        y_ganju.append(label)
+                if image_class == 51:
+                    Img_51 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_51 = Img_51.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_51)
+                        y_ganju.append(label)
+                    Img_510 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_510 = Img_510.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_510)
+                        y_ganju.append(label)
+                    Img_511 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_511 = Img_511.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_511)
+                        y_ganju.append(label)
+                if image_class == 57:
+                    Img_57 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_57 = Img_57.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_57)
+                        y_ganju.append(label)
+                    Img_570 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_570 = Img_570.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_570)
+                        y_ganju.append(label)
+                    Img_571 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_571 = Img_571.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_571)
+                        y_ganju.append(label)
+                if image_class == 60:
+                    Img_60 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_60 = Img_60.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_60)
+                        y_ganju.append(label)
+                    Img_600 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_600 = Img_600.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_600)
+                        y_ganju.append(label)
+                    Img_601 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_601 = Img_601.reshape(-1, Width, Height, 3)
+                    for i in range(2):
+                        X_ganju.append(Img_601)
+                        y_ganju.append(label)
+                if image_class == 53:
+                    Img_53 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_53 = Img_53.reshape(-1, Width, Height, 3)
+                    for i in range(38):
+                        X_ganju.append(Img_53)
+                        y_ganju.append(label)
+                    Img_530 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_530 = Img_530.reshape(-1, Width, Height, 3)
+                    for i in range(38):
+                        X_ganju.append(Img_530)
+                        y_ganju.append(label)
+                    Img_531 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_531 = Img_531.reshape(-1, Width, Height, 3)
+                    for i in range(38):
+                        X_ganju.append(Img_531)
+                        y_ganju.append(label)
+                if image_class == 52:
+                    Img_52 = cv2.flip(img, -1, dst=None)  # 水平镜像
+                    Img_52 = Img_52.reshape(-1, Width, Height, 3)
+                    for i in range(20):
+                        X_ganju.append(Img_52)
+                        y_ganju.append(label)
+                    Img_520 = cv2.flip(img, 0, dst=None)  # 水平镜像
+                    Img_520 = Img_520.reshape(-1, Width, Height, 3)
+                    for i in range(20):
+                        X_ganju.append(Img_520)
+                        y_ganju.append(label)
+                    Img_521 = cv2.flip(img, 1, dst=None)  # 水平镜像
+                    Img_521 = Img_521.reshape(-1, Width, Height, 3)
+                    for i in range(20):
+                        X_ganju.append(Img_521)
+                        y_ganju.append(label)
+
+
+    if t == 'test':
+        reference_file = "./ai_challenger_pdr2018_validation_annotations_20181021.json"
+        user_result_list = json.load(open(reference_file, encoding='utf-8'))
+        f = open(reference_file, encoding='utf-8')
+        ref_list = json.load(f)
+        f.close()
+        print("the total image is :")
+        print(len(ref_list))
+        user_result_dict = {}
+        for each_item in user_result_list:
+            image_id = each_item['image_id']
+            if image_id[-4:].lower() == '.jpg':
+                image_id = image_id[0:-4]
+            label_id = each_item['disease_class']
+            user_result_dict[image_id] = label_id
+        data_format = conv_utils.normalize_data_format(data_format)
+        pic_dir_val = './ai_challenger_pdr2018_validationset_20181023/AgriculturalDisease_validationset/images/'
+        pic_dir_set = eachFile(pic_dir_val)
+        X_apple = []
+        y_apple = []
+        X_yingtao = []
+        y_yingtao = []
+        X_yumi = []
+        y_yumi = []
+        X_putao = []
+        y_putao = []
+        X_ganju = []
+        y_ganju = []
+        X_tao = []
+        y_tao = []
+        X_lajiao = []
+        y_lajiao = []
+        X_malingshu = []
+        y_malingshu = []
+        X_caomei = []
+        y_caomei = []
+        X_fanqie = []
+        y_fanqie = []
+        count = 0
+        for pic_dir in pic_dir_set:
+            count = count + 1
+            print(count)
+            image_class=user_result_dict[pic_dir]
+            if 0 <= image_class <= 5:
+                label=image_class
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_apple.append(img)
+                y_apple.append(label)
+            if 6 <= image_class <= 8:
+                label=image_class-6
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_yingtao.append(img)
+                y_yingtao.append(label)
+            if 9 <= image_class <= 16:
+                label=image_class-9
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_yumi.append(img)
+                y_yumi.append(label)
+            if 17 <= image_class <= 23:
+                label=image_class-17
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_putao.append(img)
+                y_putao.append(label)
+            if 24 <= image_class <= 26:
+                label=image_class-24
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_ganju.append(img)
+                y_ganju.append(label)
+            if 27 <= image_class <= 29:
+                label=image_class-27
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_tao.append(img)
+                y_tao.append(label)
+            if 30 <= image_class <= 32:
+                label=image_class-30
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_lajiao.append(img)
+                y_lajiao.append(label)
+            if 33 <= image_class <= 37:
+                label=image_class-33
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_malingshu.append(img)
+                y_malingshu.append(label)
+            if 38 <= image_class <= 40:
+                label=image_class-38
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_caomei.append(img)
+                y_caomei.append(label)
+            if 41 <= image_class <= 60:
+                label=image_class-41
+                img = cv2.imdecode(np.fromfile(os.path.join(pic_dir_val, pic_dir + ".jpg"), dtype=np.uint8), -1)  # 解决不能读中文路径的问题
+                img = cv2.resize(img, (Width, Height))
+                img = img.reshape(-1, Width, Height, 3)
+                X_fanqie.append(img)
+                y_fanqie.append(label)
+    f = h5py.File(file_name, 'w')
+    if t == 'train':
+        X_apple = np.concatenate(X_apple, axis=0)
+        y_apple = np.array(y_apple)
+        f.create_dataset('X_apple', data=X_apple)
+        f.create_dataset('y_apple', data=y_apple)
+        X_yingtao = np.concatenate(X_yingtao, axis=0)
+        y_yingtao = np.array(y_yingtao)
+        f.create_dataset('X_yingtao', data=X_yingtao)
+        f.create_dataset('y_yingtao', data=y_yingtao)
+        X_yumi = np.concatenate(X_yumi, axis=0)
+        y_yumi = np.array(y_yumi)
+        f.create_dataset('X_yumi', data=X_yumi)
+        f.create_dataset('y_yumi', data=y_yumi)
+        X_putao = np.concatenate(X_putao, axis=0)
+        y_putao = np.array(y_putao)
+        f.create_dataset('X_putao', data=X_putao)
+        f.create_dataset('y_putao', data=y_putao)
+        X_ganju = np.concatenate(X_ganju, axis=0)
+        y_ganju = np.array(y_ganju)
+        f.create_dataset('X_ganju', data=X_ganju)
+        f.create_dataset('y_ganju', data=y_ganju)
+        X_tao = np.concatenate(X_tao, axis=0)
+        y_tao = np.array(y_tao)
+        f.create_dataset('X_tao', data=X_tao)
+        f.create_dataset('y_tao', data=y_tao)
+        X_lajiao = np.concatenate(X_lajiao, axis=0)
+        y_lajiao = np.array(y_lajiao)
+        f.create_dataset('X_lajiao', data=X_lajiao)
+        f.create_dataset('y_lajiao', data=y_lajiao)
+        X_malingshu = np.concatenate(X_malingshu, axis=0)
+        y_malingshu = np.array(y_malingshu)
+        f.create_dataset('X_malingshu', data=X_malingshu)
+        f.create_dataset('y_malingshu', data=y_malingshu)
+        X_caomei = np.concatenate(X_caomei, axis=0)
+        y_caomei = np.array(y_caomei)
+        f.create_dataset('X_caomei', data=X_caomei)
+        f.create_dataset('y_caomei', data=y_caomei)
+        X_fanqie = np.concatenate(X_fanqie, axis=0)
+        y_fanqie = np.array(y_fanqie)
+        f.create_dataset('X_fanqie', data=X_fanqie)
+        f.create_dataset('y_fanqie', data=y_fanqie)
+        f.close()
+        return (X_apple, y_apple,X_yingtao,y_yingtao,X_yumi,y_yumi ,X_putao ,y_putao, X_ganju,y_ganju,X_tao,y_tao,
+                X_lajiao,y_lajiao,X_malingshu,y_malingshu,X_caomei,y_caomei,X_fanqie,y_fanqie)
+    elif t == 'test':
+        X_apple = np.concatenate(X_apple, axis=0)
+        y_apple = np.array(y_apple)
+        f.create_dataset('X_apple', data=X_apple)
+        f.create_dataset('y_apple', data=y_apple)
+        X_yingtao = np.concatenate(X_yingtao, axis=0)
+        y_yingtao = np.array(y_yingtao)
+        f.create_dataset('X_yingtao', data=X_yingtao)
+        f.create_dataset('y_yingtao', data=y_yingtao)
+        X_yumi = np.concatenate(X_yumi, axis=0)
+        y_yumi = np.array(y_yumi)
+        f.create_dataset('X_yumi', data=X_yumi)
+        f.create_dataset('y_yumi', data=y_yumi)
+        X_putao = np.concatenate(X_putao, axis=0)
+        y_putao = np.array(y_putao)
+        f.create_dataset('X_putao', data=X_putao)
+        f.create_dataset('y_putao', data=y_putao)
+        X_ganju = np.concatenate(X_ganju, axis=0)
+        y_ganju = np.array(y_ganju)
+        f.create_dataset('X_ganju', data=X_ganju)
+        f.create_dataset('y_ganju', data=y_ganju)
+        X_tao = np.concatenate(X_tao, axis=0)
+        y_tao = np.array(y_tao)
+        f.create_dataset('X_tao', data=X_tao)
+        f.create_dataset('y_tao', data=y_tao)
+        X_lajiao = np.concatenate(X_lajiao, axis=0)
+        y_lajiao = np.array(y_lajiao)
+        f.create_dataset('X_lajiao', data=X_lajiao)
+        f.create_dataset('y_lajiao', data=y_lajiao)
+        X_malingshu = np.concatenate(X_malingshu, axis=0)
+        y_malingshu = np.array(y_malingshu)
+        f.create_dataset('X_malingshu', data=X_malingshu)
+        f.create_dataset('y_malingshu', data=y_malingshu)
+        X_caomei = np.concatenate(X_caomei, axis=0)
+        y_caomei = np.array(y_caomei)
+        f.create_dataset('X_caomei', data=X_caomei)
+        f.create_dataset('y_caomei', data=y_caomei)
+        X_fanqie = np.concatenate(X_fanqie, axis=0)
+        y_fanqie = np.array(y_fanqie)
+        f.create_dataset('X_fanqie', data=X_fanqie)
+        f.create_dataset('y_fanqie', data=y_fanqie)
+        f.close()
+        return (X_apple, y_apple,X_yingtao,y_yingtao,X_yumi,y_yumi ,X_putao ,y_putao, X_ganju,y_ganju,X_tao,y_tao,
+                X_lajiao,y_lajiao,X_malingshu,y_malingshu,X_caomei,y_caomei,X_fanqie,y_fanqie)
+    else:
+        return
+
+
+def main():
+    global Width, Height, pic_dir_out, pic_dir_data,pic_dir_val
+    Width = 224
+    Height = 224
+    apple_classes = 6
+    yingtao_classes=3
+    yumi_classes=8
+    putao_classes=7
+    ganju_classes=3
+    tao_classes=3
+    lajiao_classes=3
+    malingshu_classes=5
+    caomei_classes=3
+    fanqie_classes=20
+    epoch_num=6
+    pic_dir_out = './out_60/'
+    pic_dir_data = './ai_challenger_pdr2018_trainingset_20181023/AgriculturalDisease_trainingset/images/'
+    pic_dir_val = './ai_challenger_pdr2018_validationset_20181023/AgriculturalDisease_validationset/images/'
+    (X_apple, y_apple, X_yingtao, y_yingtao, X_yumi, y_yumi, X_putao, y_putao, X_ganju, y_ganju,X_tao, y_tao,X_lajiao, y_lajiao,
+     X_malingshu, y_malingshu, X_caomei, y_caomei, X_fanqie, y_fanqie) = get_data("Caltech101_color_train_",
+                                                                                  0.0, 1, data_format='channels_last', t='train')
+    print(len(y_apple))
+    print(len(y_yingtao))
+    print(len(y_yumi))
+    print(len(y_putao))
+    print(len(y_ganju))
+    print(len(y_tao))
+    print(len(y_lajiao))
+    print(len(y_malingshu))
+    print(len(y_caomei))
+    print(len(y_fanqie))
+    ganju_0=0
+    ganju_1=0
+    ganju_2=0
+    putao_0=0
+    putao_1=0
+    putao_2=0
+    putao_3=0
+    putao_4=0
+    putao_5=0
+    putao_6=0
+
+
+    yumi_0=0
+    yumi_1=0
+    yumi_2=0
+    yumi_3 = 0
+    yumi_4 = 0
+    yumi_5 = 0
+    yumi_6 = 0
+    yumi_7 = 0
+
+    fanqie_0=0
+    fanqie_1 = 0
+    fanqie_2 = 0
+    fanqie_3 = 0
+    fanqie_4 = 0
+    fanqie_5 = 0
+    fanqie_6 = 0
+    fanqie_7 = 0
+    fanqie_8 = 0
+    fanqie_9 = 0
+    fanqie_10 = 0
+    fanqie_11 = 0
+    fanqie_12 = 0
+    fanqie_13 = 0
+    fanqie_14=0
+    fanqie_15 = 0
+    fanqie_16 = 0
+    fanqie_17 = 0
+    fanqie_18 = 0
+    fanqie_19 = 0
+
+    for i in y_ganju:
+        if i==0:
+            ganju_0=ganju_0+1
+        if i==1:
+            ganju_1=ganju_1+1
+        if i == 2:
+            ganju_2 = ganju_2 + 1
+    print("ganju bili is:")
+    print(ganju_0)
+    print(ganju_1)
+    print(ganju_2)
+    for i in y_putao:
+        if i==0:
+            putao_0=putao_0+1
+        if i==1:
+            putao_1=putao_1+1
+        if i == 2:
+            putao_2 = putao_2 + 1
+        if i==3:
+            putao_3=putao_3+1
+        if i==4:
+            putao_4=putao_4+1
+        if i == 5:
+            putao_5 = putao_5 + 1
+        if i==6:
+            putao_6=putao_6+1
+
+    print("putao bili is:")
+    print(putao_0)
+    print(putao_1)
+    print(putao_2)
+    print(putao_3)
+    print(putao_4)
+    print(putao_5)
+    print(putao_6)
+
+    for i in y_yumi:
+        if i==0:
+            yumi_0=yumi_0+1
+        if i==1:
+            yumi_1=yumi_1+1
+        if i == 2:
+            yumi_2 = yumi_2 + 1
+        if i==3:
+            yumi_3=yumi_3+1
+        if i==4:
+            yumi_4=yumi_4+1
+        if i == 5:
+            yumi_5 = yumi_5 + 1
+        if i==6:
+            yumi_6=yumi_6+1
+        if i==7:
+            yumi_7=yumi_7+1
+
+    print("laojiao bili is:")
+    print(yumi_0)
+    print(yumi_1)
+    print(yumi_2)
+    print(yumi_3)
+    print(yumi_4)
+    print(yumi_5)
+    print(yumi_6)
+    print(yumi_7)
+
+    for i in y_fanqie:
+        if i==0:
+            fanqie_0=fanqie_0+1
+        if i==1:
+            fanqie_1=fanqie_1+1
+        if i == 2:
+            fanqie_2 = fanqie_2 + 1
+        if i==3:
+            fanqie_3=fanqie_3+1
+        if i==4:
+            fanqie_4=fanqie_4+1
+        if i ==5:
+            fanqie_5 = fanqie_5 + 1
+        if i==6:
+            fanqie_6=fanqie_6+1
+        if i==7:
+            fanqie_7=fanqie_7+1
+        if i == 8:
+            fanqie_8 = fanqie_8+ 1
+        if i==9:
+            fanqie_9=fanqie_9+1
+        if i==10:
+            fanqie_10=fanqie_10+1
+        if i == 11:
+            fanqie_11 = fanqie_11+ 1
+        if i==12:
+            fanqie_12=fanqie_12+1
+        if i==13:
+            fanqie_13=fanqie_13+1
+        if i == 14:
+            fanqie_14 = fanqie_14 + 1
+        if i==15:
+            fanqie_15=fanqie_15+1
+        if i==16:
+            fanqie_16=fanqie_16+1
+        if i == 17:
+            fanqie_17 = fanqie_17 + 1
+        if i==18:
+            fanqie_18=fanqie_18+1
+        if i == 19:
+            fanqie_19 = fanqie_19 + 1
+
+    print("fanqie bili is:")
+    print(fanqie_0)
+    print(fanqie_1)
+    print(fanqie_2)
+    print(fanqie_3)
+    print(fanqie_4)
+    print(fanqie_5)
+    print(fanqie_6)
+    print(fanqie_7)
+    print(fanqie_8)
+    print(fanqie_9)
+    print(fanqie_10)
+    print(fanqie_11)
+    print(fanqie_12)
+    print(fanqie_13)
+    print(fanqie_14)
+    print(fanqie_15)
+    print(fanqie_16)
+    print(fanqie_17)
+    print(fanqie_18)
+    print(fanqie_19)
+
+
+    y_apple = np_utils.to_categorical(y_apple, apple_classes)
+    y_yingtao = np_utils.to_categorical(y_yingtao, yingtao_classes)
+    y_yumi = np_utils.to_categorical(y_yumi , yumi_classes)
+    y_putao = np_utils.to_categorical(y_putao, putao_classes)
+    y_ganju = np_utils.to_categorical(y_ganju, ganju_classes)
+    y_tao = np_utils.to_categorical(y_tao, tao_classes)
+    y_lajiao = np_utils.to_categorical(y_lajiao, lajiao_classes)
+    y_malingshu = np_utils.to_categorical(y_malingshu, malingshu_classes)
+    y_caomei = np_utils.to_categorical(y_caomei, caomei_classes)
+    y_fanqie = np_utils.to_categorical(y_fanqie, fanqie_classes)
+    input_tensor = Input(shape=(Width, Height, 3))
+    base_model = ResNet50(input_tensor=input_tensor, include_top=None, weights='imagenet')  # 'imagenet'
+    x = Flatten()(base_model.output)
+    '''
+    predictions_apple = Dense(apple_classes, activation='softmax')(x)
+    model_apple = Model(inputs=input_tensor, outputs=predictions_apple)
+    model_apple.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_apple.summary()
+    model_apple.fit(X_apple, y_apple, epochs=epoch_num, batch_size=16)
+    model_apple.save(pic_dir_out + 'apple_model' + '.h5')
+    predictions_yingtao = Dense(yingtao_classes, activation='softmax')(x)
+    model_yingtao = Model(inputs=input_tensor, outputs=predictions_yingtao)
+    model_yingtao.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_yingtao.summary()
+    model_yingtao.fit(X_yingtao, y_yingtao, epochs=epoch_num, batch_size=16)
+    model_yingtao.save(pic_dir_out + 'yingtao_model' + '.h5')
+    '''
+    predictions_yumi = Dense(yumi_classes, activation='softmax')(x)
+    model_yumi = Model(inputs=input_tensor, outputs=predictions_yumi)
+    model_yumi.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_yumi.summary()
+    model_yumi.fit(X_yumi, y_yumi, epochs=8, batch_size=16)
+    model_yumi.save(pic_dir_out + 'yumi_model' + '.h5')
+    predictions_putao = Dense(putao_classes, activation='softmax')(x)
+    model_putao = Model(inputs=input_tensor, outputs=predictions_putao)
+    model_putao.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_putao.summary()
+    model_putao.fit(X_putao, y_putao, epochs=8, batch_size=16)
+    model_putao.save(pic_dir_out + 'putao_model' + '.h5')
+    
+    predictions_ganju = Dense(ganju_classes, activation='softmax')(x)
+    model_ganju = Model(inputs=input_tensor, outputs=predictions_ganju)
+    model_ganju.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_ganju.summary()
+    model_ganju.fit(X_ganju, y_ganju, epochs=8, batch_size=16)
+    model_ganju.save(pic_dir_out + 'ganju_model' + '.h5')
+    '''''
+    predictions_tao = Dense(tao_classes, activation='softmax')(x)
+    model_tao = Model(inputs=input_tensor, outputs=predictions_tao)
+    model_tao.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_tao.summary()
+    model_tao.fit(X_tao, y_tao, epochs=8, batch_size=16)
+    model_tao.save(pic_dir_out + 'tao_model' + '.h5')
+
+    predictions_lajiao = Dense(lajiao_classes, activation='softmax')(x)
+    model_lajiao = Model(inputs=input_tensor, outputs=predictions_lajiao)
+    model_lajiao.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_lajiao.summary()
+    model_lajiao.fit(X_lajiao, y_lajiao, epochs=10, batch_size=16)
+    model_lajiao.save(pic_dir_out + 'lajiao_model' + '.h5')
+    predictions_malingshu = Dense(malingshu_classes, activation='softmax')(x)
+    
+    model_malingshu = Model(inputs=input_tensor, outputs=predictions_malingshu)
+    model_malingshu.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_malingshu.summary()
+    model_malingshu.fit(X_malingshu, y_malingshu, epochs=epoch_num, batch_size=16)
+    model_malingshu.save(pic_dir_out + 'malingshu_model' + '.h5')
+    predictions_caomei = Dense(caomei_classes, activation='softmax')(x)
+    model_caomei = Model(inputs=input_tensor, outputs=predictions_caomei)
+    model_caomei.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_caomei.summary()
+    model_caomei.fit(X_caomei, y_caomei, epochs=epoch_num, batch_size=16)
+    model_caomei.save(pic_dir_out + 'caomei_model' + '.h5')
+  '''
+    predictions_fanqie = Dense(fanqie_classes, activation='softmax')(x)
+    model_fanqie = Model(inputs=input_tensor, outputs=predictions_fanqie)
+    model_fanqie.compile(optimizer=sgd(), loss='categorical_crossentropy', metrics=['accuracy'])  # Adam()
+    model_fanqie.summary()
+    model_fanqie.fit(X_fanqie, y_fanqie, epochs=8, batch_size=16)
+    model_fanqie.save(pic_dir_out + 'fanqie_model' + '.h5')
+
+    (X_apple, y_apple, X_yingtao, y_yingtao, X_yumi, y_yumi, X_putao, y_putao, X_ganju, y_ganju, X_tao, y_tao,
+     X_lajiao, y_lajiao, X_malingshu, y_malingshu, X_caomei, y_caomei, X_fanqie, y_fanqie) = get_data("Caltech101_color_test_", 0.0, 0.7, data_format='channels_last', t='test')
+    y_apple = np_utils.to_categorical(y_apple, apple_classes)
+    y_yingtao = np_utils.to_categorical(y_yingtao, yingtao_classes)
+    y_yumi = np_utils.to_categorical(y_yumi, yumi_classes)
+    y_putao = np_utils.to_categorical(y_putao, putao_classes)
+    y_ganju = np_utils.to_categorical(y_ganju, ganju_classes)
+    y_tao = np_utils.to_categorical(y_tao, tao_classes)
+    y_lajiao = np_utils.to_categorical(y_lajiao, lajiao_classes)
+    y_malingshu = np_utils.to_categorical(y_malingshu, malingshu_classes)
+    y_caomei = np_utils.to_categorical(y_caomei, caomei_classes)
+    y_fanqie = np_utils.to_categorical(y_fanqie, fanqie_classes)
+    print('\nTesting -apple-----------')  # 对测试集进行评估
+    model_apple = load_model(pic_dir_out + 'apple_model' + '.h5')
+    pred = model_apple.predict(X_apple, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_apple, axis=1)
+    class_count = [0 for _ in range(apple_classes)]
+    class_acc = [0 for _ in range(apple_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -yingtao-----------')  # 对测试集进行评估
+    model_yingtao = load_model(pic_dir_out + 'yingtao_model' + '.h5')
+    pred = model_yingtao.predict(X_yingtao, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_yingtao, axis=1)
+    class_count = [0 for _ in range(yingtao_classes)]
+    class_acc = [0 for _ in range(yingtao_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -yumi-----------')  # 对测试集进行评估
+    model_yumi = load_model(pic_dir_out + 'yumi_model' + '.h5')
+    pred = model_yumi.predict(X_yumi, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_yumi, axis=1)
+    class_count = [0 for _ in range(yumi_classes)]
+    class_acc = [0 for _ in range(yumi_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -putao-----------')  # 对测试集进行评估
+    model_putao = load_model(pic_dir_out + 'putao_model' + '.h5')
+    pred = model_putao.predict(X_putao, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_putao, axis=1)
+    class_count = [0 for _ in range(putao_classes)]
+    class_acc = [0 for _ in range(putao_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -ganju-----------')  # 对测试集进行评估
+    model_ganju = load_model(pic_dir_out + 'ganju_model' + '.h5')
+    pred = model_ganju.predict(X_ganju, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_ganju, axis=1)
+    class_count = [0 for _ in range(ganju_classes)]
+    class_acc = [0 for _ in range(ganju_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -tao-----------')  # 对测试集进行评估
+    model_tao = load_model(pic_dir_out + 'tao_model' + '.h5')
+    pred = model_tao.predict(X_tao, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_tao, axis=1)
+    class_count = [0 for _ in range(tao_classes)]
+    class_acc = [0 for _ in range(tao_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -lajiao-----------')  # 对测试集进行评估
+    model_lajiao = load_model(pic_dir_out + 'lajiao_model' + '.h5')
+    pred = model_lajiao.predict(X_lajiao, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_lajiao, axis=1)
+    class_count = [0 for _ in range(lajiao_classes)]
+    class_acc = [0 for _ in range(lajiao_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -malingshu-----------')  # 对测试集进行评估
+    model_malingshu = load_model(pic_dir_out + 'malingshu_model' + '.h5')
+    pred = model_malingshu.predict(X_malingshu, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_malingshu, axis=1)
+    class_count = [0 for _ in range(malingshu_classes)]
+    class_acc = [0 for _ in range(malingshu_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -caomei-----------')  # 对测试集进行评估
+    model_caomei = load_model(pic_dir_out + 'caomei_model' + '.h5')
+    pred = model_caomei.predict(X_caomei, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_caomei, axis=1)
+    class_count = [0 for _ in range(caomei_classes)]
+    class_acc = [0 for _ in range(caomei_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print('\nTesting -fanqie-----------')  # 对测试集进行评估
+    model_fanqie = load_model(pic_dir_out + 'fanqie_model' + '.h5')
+    pred = model_fanqie.predict(X_fanqie, batch_size=32)
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_fanqie, axis=1)
+    class_count = [0 for _ in range(fanqie_classes)]
+    class_acc = [0 for _ in range(fanqie_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
