@@ -1,0 +1,35 @@
+list1 = os.listdir('./data/')
+for item in list1:
+    print(item)
+    with open('./data/'+'/groundtruth_rect.txt') as f:
+        a = f.read().split('\n')
+    if '\t' in a[0]:
+        print('...')
+        a = [','.join(i.split('\t')) for i in a]
+    lenth=len(os.listdir('./data/'+'/img/'))
+    l=[]
+    for k in range(lenth):
+        k=k+1
+        s="%04d"%k
+        l.append(s)
+    if not os.path.exists('./data/'+'/label/'):
+        os.makedirs('./data/'+'/label/')
+    for j,k in zip(a, l):
+        with open('./data/'+'/label/'+k.split('.')[0]+'.txt', 'w') as f:
+            f.write(j)
+def IOU(a, b):
+    sa = (a[2] - a[0]+1) * (a[3] - a[1]+1)
+    sb = (b[2] - b[0]+1) * (b[3] - b[1]+1)
+    w = max(0, (min(a[2], b[2]) - max(a[0], b[0])+1))
+    h = max(0, (min(a[3], b[3]) - max(a[1], b[1])+1))
+    area = w * h
+    return area / (sa + sb - area)
+res_1=(res[0],res[1],res[0]+res[2],res[1]+res[3])
+ress_1=(test_bb[0],test_bb[1],test_bb[0]+test_bb[2],test_bb[1]+test_bb[3])
+print(IOU(ress_1,res_1))
+cv2.rectangle(im, (int(res[0]),int(res[1])), (int(res[0]+res[2]), int(res[1]+res[3])), (255, 0, 0), 1)
+
+cv2.rectangle(im, (int(test_bb[0]),int(test_bb[1])), (int(test_bb[0]+test_bb[2]), int(test_bb[1]+test_bb[3])), (255, 255, 0), 1)
+
+cv2.imshow('img', im)
+cv2.waitKey(0)
