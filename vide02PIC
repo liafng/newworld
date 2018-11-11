@@ -1,0 +1,26 @@
+import pandas as pd
+import cv2
+import os
+
+
+import os
+list1 = os.listdir('./OTB2015/')
+for item in list1:
+    print(item)
+    with open('./OTB2015/'+item+'/groundtruth_rect.txt') as f:
+        a = f.read().split('\n')
+    if '\t' in a[0]:
+        print('...')
+        a = [','.join(i.split('\t')) for i in a]
+    lenth=len(os.listdir('./OTB2015/'+item+'/img/'))
+    l=[]
+    for k in range(lenth):
+        k=k+1
+        s="%04d"%k
+        l.append(s)
+    if not os.path.exists('./OTB2015/'+item+'/label/'):
+        os.makedirs('./OTB2015/'+item+'/label/')
+    for j,k in zip(a, l):
+        with open('./OTB2015/'+item+'/label/'+k.split('.')[0]+'.txt', 'w') as f:
+            f.write(j)
+#%%
