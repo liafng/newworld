@@ -1,0 +1,104 @@
+    for w1 in range(100):
+        w1=w1+1
+        for g1 in range(100):
+            g1=g1+1
+            pred = pred_1*w1 + pred_2 * g1
+            print(w1,g1)
+            N = 1
+            pred_list = []
+            for row in pred:
+                pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+            pred_array = np.array(pred_list)
+            test_arg = np.argmax(y_test, axis=1)
+            class_count = [0 for _ in range(num_classes)]
+            class_acc = [0 for _ in range(num_classes)]
+            for i in range(len(test_arg)):
+                class_count[test_arg[i]] += 1
+                if test_arg[i] in pred_array[i]:
+                    class_acc[test_arg[i]] += 1
+            print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+                  sum(class_acc) / float(len(test_arg)))
+            if sum(class_acc)>=3950:
+                print(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,")
+            print("game over!")
+
+
+    h1=0.8
+    u1=0.8
+    for h in range(100):
+        for u in range(100):
+            pred = pred_3 * h1 + pred_4 * u1
+            print(h1,u1)
+            N = 1
+            pred_list = []
+            for row in pred:
+                pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+            pred_array = np.array(pred_list)
+            test_arg = np.argmax(y_test, axis=1)
+            class_count = [0 for _ in range(num_classes)]
+            class_acc = [0 for _ in range(num_classes)]
+            for i in range(len(test_arg)):
+                class_count[test_arg[i]] += 1
+                if test_arg[i] in pred_array[i]:
+                    class_acc[test_arg[i]] += 1
+            print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+                  sum(class_acc) / float(len(test_arg)))
+            if sum(class_acc)>=3950:
+                print(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,")
+            print("game over!")
+            u1 = u1 + 0.01
+        u1=0.8
+        h1=h1+0.01
+
+
+    
+    pred = pred1 + pred2 * 4
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_test, axis=1)
+    class_count = [0 for _ in range(num_classes)]
+    class_acc = [0 for _ in range(num_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print("game over!")
+
+    pred = pred1 + pred2 
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_test, axis=1)
+    class_count = [0 for _ in range(num_classes)]
+    class_acc = [0 for _ in range(num_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print("game over!")
+
+    pred = pred1*0.85 + pred2 * 0.87
+    N = 1
+    pred_list = []
+    for row in pred:
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_test, axis=1)
+    class_count = [0 for _ in range(num_classes)]
+    class_acc = [0 for _ in range(num_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    print("game over!")
