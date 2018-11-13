@@ -1,0 +1,85 @@
+
+
+    (X_test, y_test) = get_data("Caltech101_color_test_", 0.0, 0.7, data_format='channels_last', t='test')
+    y_test = np_utils.to_categorical(y_test, num_classes)
+    print('\nTesting ------------')  # 对测试集进行评估
+
+
+
+
+
+
+    model_1 = load_model(pic_dir_out + 'model_0.8621' + '.h5')
+    pred_1 = model_1.predict(X_test, batch_size=16)
+    model_2 = load_model(pic_dir_out + 'model_0.8607' + '.h5')
+    pred_2 = model_2.predict(X_test, batch_size=16)
+    model_3 = load_model(pic_dir_out + 'model_0.8665' + '.h5')
+    pred_3 = model_3.predict(X_test, batch_size=16)
+    model_4 = load_model(pic_dir_out + 'model_0.8590' + '.h5')
+    pred_4 = model_4.predict(X_test, batch_size=16)
+    model_5 = load_model(pic_dir_out + 'model_0.85814' + '.h5')
+    pred_5 = model_5.predict(X_test, batch_size=16)
+    model_6 = load_model(pic_dir_out + 'model_0.854' + '.h5')
+    pred_6 = model_6.predict(X_test, batch_size=16)
+    model_7 = load_model(pic_dir_out + 'model_0.8449' + '.h5')
+    pred_7 = model_7.predict(X_test, batch_size=16)
+
+    print(pred_1.shape)
+
+    N = 1
+    pred_list = []
+    hhh=np.zeros((4540,61))
+    conn=0
+    for row_1 in pred_1:
+        h1=row_1.argsort()[-N:][::-1]
+        hhh[conn,h1]=hhh[conn,h1]+1
+        conn=conn+1
+    conn = 0
+    for row_2 in pred_2:
+        h2 = row_2.argsort()[-N:][::-1]
+        hhh[conn, h2] = hhh[conn, h2] + 1
+        conn = conn + 1
+    conn = 0
+    for row_3 in pred_3:
+        h3 = row_3.argsort()[-N:][::-1]
+        hhh[conn, h3] = hhh[conn, h3] + 1
+        conn = conn + 1
+    conn = 0
+    for row_4 in pred_4:
+        h4 = row_4.argsort()[-N:][::-1]
+        hhh[conn, h4] = hhh[conn, h4] + 1
+        conn = conn + 1
+    conn = 0
+    for row_5 in pred_5:
+        h5 = row_5.argsort()[-N:][::-1]
+        hhh[conn, h5] = hhh[conn, h5] + 1
+        conn = conn + 1
+    conn = 0
+    for row_6 in pred_6:
+        h6 = row_6.argsort()[-N:][::-1]
+        hhh[conn, h6] = hhh[conn, h6] + 1
+        conn = conn + 1
+    conn = 0
+    for row_7 in pred_7:
+        h7 = row_7.argsort()[-N:][::-1]
+        hhh[conn, h7] = hhh[conn, h7] + 1
+        conn = conn + 1
+
+    for row in hhh:
+        print(row.argsort())
+        pred_list.append(row.argsort()[-N:][::-1])  # 获取最大的N个值的下标
+    pred_array = np.array(pred_list)
+    test_arg = np.argmax(y_test, axis=1)
+    class_count = [0 for _ in range(num_classes)]
+    class_acc = [0 for _ in range(num_classes)]
+    for i in range(len(test_arg)):
+        class_count[test_arg[i]] += 1
+        if test_arg[i] in pred_array[i]:
+            class_acc[test_arg[i]] += 1
+    print('top-' + str(N) + ' all acc:', str(sum(class_acc)) + '/' + str(len(test_arg)),
+          sum(class_acc) / float(len(test_arg)))
+    if sum(class_acc) >= 3950:
+        print(",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,")
+    print("game over!")
+
+
