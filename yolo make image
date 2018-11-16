@@ -1,0 +1,118 @@
+import os  
+import re
+import cv2  
+import csv
+import h5py
+import scipy
+import Tkinter
+import numpy as np 
+import pandas as pd
+import tensorflow as tf  
+from PIL  import Image
+from keras import backend as K  
+from keras.models import Model 
+from keras.models import load_model
+from keras.preprocessing import image
+from tkFileDialog import askdirectory
+from keras.utils import np_utils, conv_utils  
+from keras.layers import Flatten, Dense, Input, Dropout  
+from keras.optimizers import Adam  
+from keras.applications.resnet50 import ResNet50  
+from keras.models import Sequential
+from keras.utils import np_utils, conv_utils  
+from keras.applications.resnet50 import preprocess_input
+#所达到的目的是实现电脑自己选择路径对图片进行切除自己生成文件夹
+
+
+#选择文件夹并生成要产生图片的文件夹
+def choose_image_file():
+    root=Tkinter.Tk()#使用这个可以关闭TK窗口
+    root.withdraw()
+    path=askdirectory()
+    return path
+def get_local(pic_num,txt_path):
+    file_txt =open(txt_path)
+    g=file_txt.read()
+    U=re.findall(r"([0-9]+)",g,re.MULTILINE)
+ #   print(U[4:6])
+    pic_x,pic_y,pic_width,img_height=U[4*pic_num:4*pic_num+4]
+    return int(pic_x),int(pic_y),int(pic_width),int(img_height)
+    
+    
+ image_path=choose_image_file()
+#现在只做九宫图像和原始图像
+conb_path= image_path+"/cut_image/"
+if os.path.exists(conb_path):
+    aa=1  
+else:
+    os.makedirs(conb_path)
+    
+    
+picture_num=1
+pic=cv2.imread(image_path+"/img/0001.jpg")
+pic_channa==pic[:,:,(2,1,0)]
+for i in range(picture_num):
+    num+=1
+    num_m=str(num).zfill(6)
+    scipy.misc.imsave(conb_path+str(num_m)+".jpg",pic_channa)
+    
+num=1000
+txt_path=image_path+"/groundtruth_rect.txt"
+img_x,img_y,img_width,img_height=get_local(0,txt_path)
+print("object is :")
+print(img_x,img_y,img_width,img_height)
+#首先内缩两个像素
+img_x=img_x
+img_y=img_y
+img_height=img_height
+img_width=img_width
+#成为三的倍数像素
+while  img_width%3!=0:
+        img_width-=1
+while img_height%3 !=0:
+        img_height-=1
+pic=cv2.imread(image_path+"/img/0001.jpg")
+pic_channa=pic[:,:,(2,1,0)]
+update_rect=pic_channa[img_y:img_y+img_height,img_x:img_x+img_width]              #高在前，宽在后注意这是内缩后的裁剪
+scipy.misc.imsave(conb_path+"1.jpg",update_rect)
+x_1=int(img_width/3)
+y_1=int(img_height/3)
+con_image=np.ones((9,y_1,x_1,3))
+new_x=0
+new_y=0
+con=0
+#切割图片放入高维矩阵中
+for i in range(3):
+    for j in range(3):
+        img_cut=update_rect[new_y:new_y+y_1,new_x:new_x+x_1,:]
+        #scipy.misc.imsave("/home/zqm/pic_cnn/David3/mex/"+"_"+str(con)+".jpg",img_cut) 
+        con_image[con,:,:,:]= img_cut
+        con+=1
+        new_x=new_x+x_1
+    new_x=0
+    new_y=new_y+y_1
+#排列组合图片
+number_1=0
+for j in range(num):
+    number_1+=1
+    number_2=str(number_1).zfill(6)
+    mex_x=0
+    mex_y=0
+    mex=np.ones((img_height,img_width,3))
+    L_1=[0,1,2,3,4,5,6,7,8]
+    np.random.shuffle(L_1)
+    for k in range(9):  
+        index=L_1[k]
+        mex[mex_y:mex_y+y_1,mex_x:mex_x+x_1,:]=con_image[index,:,:,:]
+        #print(mex_y,mex_y+y_1,mex_x,mex_x+x_1)
+        mex_x+=x_1
+        k+=1
+        if k%3==0:
+            mex_x=0
+            mex_y+=y_1
+    pic_chan=pic_channa
+    pic_chan[img_y:img_y+img_height,img_x:img_x+img_width]=mex
+    scipy.misc.imsave(conb_path+str(number_2)+".jpg",pic_chan)
+
+
+print("Combine the image is over!")
